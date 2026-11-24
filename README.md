@@ -86,23 +86,23 @@ curl -i -X DELETE "http://localhost:5000/api/timeseries/$ID/DataPoints/$DATA_POI
 
 Each entry states the choice, the reasoning, and the condition under which I would change it
 
-**PostgreSQL over in-memory, despite the brief permitting in-memory.**
+**PostgreSQL over in-memory, despite the brief permitting in-memory.**  
 The brief allowed in-memory, and for the API surface alone a dictionary would have been fewer moving parts. I chose Postgres for one reason: the core correctness rule of a time series is that points within a series do not overlap, and that rule is only truly enforceable at the database. A tsrange column with an exclusion constraint rejects an overlapping write transactionally, so the invariant holds under concurrent writers in a way an application-level check cannot. If the team standardizes on another datastore, the domain model and endpoints stay put, only the repository implementation changes.
 
-**The invariant lives in the schema, not the service.**
+**The invariant lives in the schema, not the service.**  
 I deliberately pushed non-overlap down to the lowest layer that can guarantee it. A rule enforced only in the service layer is one careless future endpoint away from being violated; a schema constraint means the next developer, including me in six months, cannot reintroduce overlaps without the write failing loudly. This is the one decision I'd defend hardest: I can't see a realistic case for moving the no-overlap guarantee out of the database, so it's the part I'd least want to move.
 
-**Half-open `[start, end)` intervals.**
+**Half-open `[start, end)` intervals.**  
 Adjacent points share a boundary without double-counting it, so a day sliced into quarter-hours sums correctly. If a downstream consumer required closed intervals, I'd convert at the response boundary rather than change storage, since closed intervals don't tile and would corrupt the canonical representation for everyone else.
 
-**UTC storage and filtering, offsets rejected at the edge.**
+**UTC storage and filtering, offsets rejected at the edge.**  
 I store and filter in UTC so interval math is unambiguous across the DST boundary. Non-UTC input is rejected with
 `400` and bidding-zone local time is treated as a presentation concern. If the product genuinely needed zone-local semantics, I'd model that explicitly, storing the UTC timestamp plus the zone ID and deriving local time on read rather than make local time the storage default.
 
-**Energy as a value object (value + unit), not a bare decimal.**
+**Energy as a value object (value + unit), not a bare decimal.**  
 Unit confusion is a real class of bug in market data. Encoding the unit in the type moves it from a runtime surprise to a compile-time one. If more measures such as price, power, or capacity appeared, I'd generalize this into a small set of strongly-typed measures rather than special-case energy.
 
-**Application-level uniqueness for series, database-level for overlap.**
+**Application-level uniqueness for series, database-level for overlap.**  
 I enforced the *data* invariant (no overlapping points) in the database, where it is transactionally safe, but left the *request* invariant (no duplicate series, idempotent upsert) to the application. That asymmetry is deliberate, not an oversight. The data invariant must never be violated by any code path, whereas the request invariant is a concurrency nicety that only matters when callers race each other. I'd add a unique
 constraint on (zone, resolution) and an idempotency key on the upsert once this is exposed to more than a single trusted caller.
 
