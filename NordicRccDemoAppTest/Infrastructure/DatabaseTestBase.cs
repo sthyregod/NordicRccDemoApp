@@ -1,3 +1,4 @@
+using DotNet.Testcontainers.Builders;
 using Microsoft.EntityFrameworkCore;
 using NordicRccDemoApp.Data;
 using Testcontainers.PostgreSql;
@@ -24,6 +25,8 @@ public abstract class DatabaseTestBase
             .WithDatabase("NordicRccDemoAppTest")
             .WithUsername("postgres")
             .WithPassword("postgres")
+            .WithWaitStrategy(Wait.ForUnixContainer()
+                .UntilMessageIsLogged("database system is ready to accept connections"))
             .Build();
 
         await Container.StartAsync();

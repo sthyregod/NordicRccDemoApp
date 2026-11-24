@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DotNet.Testcontainers.Builders;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -16,6 +17,8 @@ public abstract class ApiTestBase : WebApplicationFactory<Program>
         .WithDatabase("NordicRccDemoAppTest")
         .WithUsername("postgres")
         .WithPassword("postgres")
+        .WithWaitStrategy(Wait.ForUnixContainer()
+            .UntilMessageIsLogged("database system is ready to accept connections"))
         .Build();
 
     protected HttpClient Client = null!;
