@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/Solution Items/" />
+  <Project Path="NordicRccDemoApp/NordicRccDemoApp.csproj" />
+  <Project Path="NordicRccDemoAppTest/NordicRccDemoAppTest.csproj" />
+</Solution>
